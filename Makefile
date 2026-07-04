@@ -199,19 +199,19 @@ dev: deps generate ## Generate, build all images, load into kind, install/upgrad
 	$(MAKE) docker-build
 	$(MAKE) kind-load
 	$(KUBECTL) get namespace magos-system >/dev/null 2>&1 || $(KUBECTL) create namespace magos-system
-	$(HELM) upgrade --install magos charts/magos/ \
-	    --namespace magos-system \
-	    --set image.tag=local --set image.pullPolicy=Never \
-	    --set jobImage.tag=local --set jobImage.pullPolicy=Never \
-	    --set ui.image.tag=local --set ui.image.pullPolicy=Never \
-	    --set api.image.tag=local --set api.image.pullPolicy=Never \
-	    --wait --timeout=5m
 	# The :local tag is unchanged across rebuilds, so helm upgrade alone
 	# does not restart pods even when the image content changed. Force a
 	# rolling restart and wait for each deployment to converge so callers
 	# of `make dev` can rely on the new build being live when the target
 	# returns.
 	$(KUBECTL) -n magos-system rollout restart deployment -l app.kubernetes.io/instance=magos
+	$(HELM) upgrade --install magos charts/magos/ \
+	    --namespace magos-system \
+	    --set image.tag=$(TAG) --set image.pullPolicy=Never \
+	    --set jobImage.tag=$(TAG) --set jobImage.pullPolicy=Never \
+	    --set ui.image.tag=$(TAG) --set ui.image.pullPolicy=Never \
+	    --set api.image.tag=$(TAG) --set api.image.pullPolicy=Never \
+	    --wait --timeout=5m
 	@for d in $$($(KUBECTL) -n magos-system get deploy -l app.kubernetes.io/instance=magos -o jsonpath='{.items[*].metadata.name}'); do \
 	    $(KUBECTL) -n magos-system rollout status deployment/$$d --timeout=5m; \
 	done
